@@ -1,4 +1,5 @@
 from collections import deque
+import time
 import cv2
 import numpy as np
 import mxnet as mx
@@ -7,7 +8,8 @@ from mxnet.gluon.data.vision import transforms
 from gluoncv.data.transforms import video
 from gluoncv import utils
 from gluoncv.model_zoo import get_model
-
+from subprocess import Popen, PIPE
+from PIL import Image
 # from gluoncv.utils.filesystem import try_import_decord
 
 SAMPLE_DURATION = 32
@@ -18,10 +20,17 @@ video_file = "smoking3people.mov"
 
 # load video
 vid = cv2.VideoCapture(video_file)
+fps = vid.get(cv2.CAP_PROP_FPS)
 model_name = 'i3d_resnet50_v1_hmdb51'
 net = get_model(model_name, pretrained=True)
+save_path = f"results/{model_name}_{video_file}_action_full_vid.mp4"
+pipe = Popen([
+        'ffmpeg', '-loglevel', 'quiet', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}', 
+        '-i', '-', '-vcodec', 'libx264', '-crf', '28', '-preset', 'veryslow', '-framerate', f'{fps}', f'{save_path}'
+    ], stdin=PIPE)
 
 while True:
+    start = time.time()
     ret, frame = vid.read()
     if not ret:
         break
@@ -43,11 +52,16 @@ while True:
     classes = net.classes
     topK = 1
     ind = nd.topk(pred, k=topK)[0].astype('int')
-    print('The input video clip is classified to be')
-    for i in range(topK):
-        print('\t[%s], with probability %.3f.'%
-            (classes[ind[i].asscalar()], nd.softmax(pred)[0][ind[i]].asscalar()))
-    # break
+    # print('The input video clip is classified to be')
+    runtime_fps = 1 / (time.time() - start)
+    action = classes[ind[0].asscalar()]
+    label = f"{runtime_fps:.2f}_{action}"
+    cv2.putText(frame, label, (10, 100), cv2.FONT_HERSHEY_PLAIN, 2, [255, 255, 255], 2)
+    
+    frame = Image.fromarray(frame[..., ::-1])
+    print(f"INFO: FPS {runtime_fps:.2f} {action}")
+    frame.save(pipe.stdin, 'JPEG')
+    
 
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #     break
+pipe.stdin.close()
+pipe.wait()
