@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, './yolov5')
-
+from subprocess import Popen, PIPE
+from PIL import Image
 from yolov5.utils.datasets import LoadImages, LoadStreams
 from yolov5.utils.general import check_img_size, non_max_suppression, scale_coords
 from yolov5.utils.torch_utils import select_device, time_synchronized
@@ -78,8 +79,22 @@ def detect(opt, save_img=False):
     # run once
     _ = model(img.half() if half else img) if device.type != 'cpu' else None
 
-    save_path = str(Path(out))
+    # save_path = str(Path(out))
     txt_path = str(Path(out)) + '/results.txt'
+
+    vid = cv2.VideoCapture(source)
+    
+    filename = os.path.basename(source).split('.')[0]
+    save_path = f"results/{filename}.mp4"
+    fps = vid.get(cv2.CAP_PROP_FPS)
+    w = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*("mp4v")), fps, (w, h))
+    # ffmpeg setup
+    pipe = Popen([
+        'ffmpeg', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}', 
+        '-i', '-', '-vcodec', 'libx264', '-crf', '28', '-preset', 'veryslow', '-framerate', f'{fps}', f'{save_path}'
+    ], stdin=PIPE)
 
     for frame_idx, (path, img, im0s, vid_cap) in enumerate(dataset):
         img = torch.from_numpy(img).to(device)
@@ -102,9 +117,9 @@ def detect(opt, save_img=False):
             if webcam:  # batch_size >= 1
                 p, s, im0 = path[i], '%g: ' % i, im0s[i].copy()
             else:
-                p, s, im0 = path, '', im0s
+                p, im0 = path, im0s
 
-            s += '%gx%g ' % img.shape[2:]  # print string
+            # s += '%gx%g ' % img.shape[2:]  # print string
             # save_path = str(Path(out) / Path(p).name)
 
             if det is not None and len(det):
@@ -115,7 +130,7 @@ def detect(opt, save_img=False):
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
-                    s += '%g %ss, ' % (n, names[int(c)])  # add to string
+                    # s += '%g %ss, ' % (n, names[int(c)])  # add to string
 
                 bbox_xywh = []
                 confs = []
@@ -143,7 +158,7 @@ def detect(opt, save_img=False):
                 deepsort.increment_ages()
 
             # Print time (inference + NMS)
-            print('%sDone. (%.3fs)' % (s, t2 - t1))
+            # print('%sDone. (%.3fs)' % (s, t2 - t1))
 
             # Stream results
             if view_img:
@@ -151,27 +166,18 @@ def detect(opt, save_img=False):
                 if cv2.waitKey(1) == ord('q'):  # q to quit
                     raise StopIteration
 
-            filename = os.path.basename(source).split('.')[0]
-            save_path = f"results/{filename}.mp4"
             # Save results (image with detections)
-            if save_img:
-                # print('saving img!')
-                if dataset.mode == 'images':
-                    cv2.imwrite(save_path, im0)
-                else:
-                    # print('saving video!')
-                    
-                    if isinstance(vid_writer, cv2.VideoWriter):
-                        vid_writer.release()  # release previous video writer
-
-                    fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                    w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*opt.fourcc), fps, (w, h))
-                    vid_writer.write(im0)
+            # vid_writer.write(im0)
+            im0 = Image.fromarray(im0[..., ::-1])
+            print(im0)
+            im0.save(pipe.stdin, 'JPEG')
 
     if save_txt or save_img:
         print('Results saved to %s' % os.getcwd() + os.sep + out)
+        # vid_writer.release()
+        p.stdin.close()
+        p.wait()
+
         if platform == 'darwin':  # MacOS
             os.system('open ' + save_path)
 

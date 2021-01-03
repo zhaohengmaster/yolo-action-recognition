@@ -59,6 +59,7 @@ class DeepSort(object):
         # if len(outputs) > 0:
         #     outputs = np.stack(outputs, axis=0)
         # return outputs
+        return ori_img
 
     """
     TODO:
