@@ -60,7 +60,6 @@ class DeepSort(object):
             track.update_frames(bbox, ori_img)
             # print(f"INFO: len action_frames: {len(track.frames)}")
             action = track.get_action(self.net)
-            print(f"INFO: action {action}")
             self.draw_boxes(ori_img, bbox, track.track_id, action)
         #     track_id = track.track_id
         #     outputs.append(np.array([x1, y1, x2, y2, track_id], dtype=np.int))

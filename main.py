@@ -16,16 +16,17 @@ SAMPLE_DURATION = 32
 frames = deque(maxlen=SAMPLE_DURATION)
 
 
-video_file = "smoking3people.mov"
+video_file = "./samples/smoking3people.mp4"
 
 # load video
 vid = cv2.VideoCapture(video_file)
 fps = vid.get(cv2.CAP_PROP_FPS)
 model_name = 'i3d_resnet50_v1_hmdb51'
 net = get_model(model_name, pretrained=True)
-save_path = f"results/{model_name}_{video_file}_action_full_vid.mp4"
+# save_path = f"results/{model_name}_{video_file}_action_full_vid.mp4"
+save_path = f"results/action_full_vid.mp4"
 pipe = Popen([
-        'ffmpeg', '-loglevel', 'quiet', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}', 
+        './ffmpeg', '-loglevel', 'quiet', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}',
         '-i', '-', '-vcodec', 'libx264', '-crf', '28', '-preset', 'veryslow', '-framerate', f'{fps}', f'{save_path}'
     ], stdin=PIPE)
 

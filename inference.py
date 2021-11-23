@@ -12,7 +12,7 @@ decord = try_import_decord()
 
 # url = 'https://github.com/bryanyzhu/tiny-ucf101/raw/master/abseiling_k400.mp4'
 # video_fname = utils.download(url)
-vr = decord.VideoReader("smoking3people.mov")
+vr = decord.VideoReader("./samples/smoking3people.mp4")
 frame_id_list = range(0, 64, 2)
 video_data = vr.get_batch(frame_id_list).asnumpy()
 clip_input = [video_data[vid, :, :, :] for vid, _ in enumerate(frame_id_list)]

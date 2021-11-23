@@ -91,6 +91,8 @@ class Track:
         self.SAMPLE_DURATION = 32
         self.frames = deque(maxlen=self.SAMPLE_DURATION)
         self.action = None
+        self.count = 0
+        self.step = 16
 
     def update_frames(self, bbox, image):
         # crop image with bbox roi
@@ -102,6 +104,11 @@ class Track:
     def get_action(self, net):
         if len(self.frames) < self.SAMPLE_DURATION:
             return None
+        if self.count % self.step is not 0:
+            self.count += 1
+            print(f"INFO: action {self.action}")
+            return self.action
+        self.count += 1
         clip_input = self.frames
         transform_fn = video.VideoGroupValTransform(size=224, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         clip_input = transform_fn(clip_input)
@@ -114,7 +121,9 @@ class Track:
         classes = net.classes
         topK = 1
         ind = nd.topk(pred, k=topK)[0].astype('int')
-        return classes[ind[0].asscalar()]
+        self.action = classes[ind[0].asscalar()]
+        print(f"INFO: action {self.action}")
+        return self.action
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,

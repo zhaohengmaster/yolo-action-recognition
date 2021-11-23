@@ -92,7 +92,7 @@ def detect(opt, save_img=False):
     # vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*("mp4v")), fps, (w, h))
     # ffmpeg setup
     pipe = Popen([
-        'ffmpeg', '-loglevel', 'quiet', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}', 
+        './ffmpeg', '-loglevel', 'quiet', '-y', '-f', 'image2pipe', '-vcodec', 'mjpeg', '-framerate', f'{fps}',
         '-i', '-', '-vcodec', 'libx264', '-crf', '28', '-preset', 'veryslow', '-framerate', f'{fps}', f'{save_path}'
     ], stdin=PIPE)
     length = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -192,7 +192,7 @@ if __name__ == '__main__':
                         default='yolov5/weights/yolov5s.pt', help='model.pt path')
     # file/folder, 0 for webcam
     parser.add_argument('--source', type=str,
-                        default='inference/images', help='source')
+                        default='samples/test.mp4', help='source')
     parser.add_argument('--output', type=str, default='inference/output',
                         help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640,
